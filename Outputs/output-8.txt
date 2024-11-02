@@ -1,0 +1,3 @@
+UCS
+Steps: 72, Weight: 472, Nodes: 653525, Time (ms): 20476.23, Memory (MB): 22.64
+No solution

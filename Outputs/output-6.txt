@@ -1,3 +1,9 @@
 UCS
 Steps: 105, Weight: 402, Nodes: 87467, Time (ms): 721.63, Memory (MB): 9.57
 rddLruulDlDDDrdLLdlluRuRlddrUrUUUluRRRdLulDDDrdLLdlluRuRlddrUrUUUluRddddlluRdrUUUrruulDrdLuLDDDrdLLulDrdL
+DFS
+Steps: 0, Weight: 0, Nodes: 1093, Time (ms): 0.18981s, Memory (MB): 21.55469
+No solution
+BFS
+Steps: 105, Weight: 402, Nodes: 52172, Time (ms): 163.17, Memory (MB): 26.93
+rddLruulDlDDDrdLLdlluRuRlddrUrUUUluRRRdLulDDDrdLLdlluRuRlddrUrUUUluRddddlluRdrUUUrruulDrdLuLDDDrdLLulDrdL

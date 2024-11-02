@@ -1,3 +1,9 @@
 UCS
 Steps: 84, Weight: 565, Nodes: 726957, Time (ms): 20074.23, Memory (MB): 30.69
 No solution
+DFS
+Steps: 0, Weight: 0, Nodes: 1055, Time (ms): 0.15500s, Memory (MB): 21.26562
+No solution
+BFS
+Steps: 42, Weight: 414, Nodes: 46345, Time (ms): 137.27, Memory (MB): 622.64
+drUUruuLDllluuurrdDuullddRdRRlUlluurrDDldR

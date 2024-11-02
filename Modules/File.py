@@ -19,5 +19,5 @@ def exportSolutionToFile(caseIndex: int, algoName: str, steps: int, path: str, c
     with open(os.path.join('Outputs', f'output-{caseIndex}.txt'), 'a') as f:
         data = f'{algoName}\n'
         data += f'Steps: {steps}, Weight: {cost}, Nodes: {nodesGenerated}, Time (ms): {time:.5f}s, Memory (MB): {memory:.5f}\n'
-        data += f'{path}'
+        data += f'{path}\n'
         f.write(data)

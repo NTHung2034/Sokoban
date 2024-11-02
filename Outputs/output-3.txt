@@ -1,3 +1,9 @@
 UCS
 Steps: 20, Weight: 1300, Nodes: 5048, Time (ms): 28.70, Memory (MB): 0.12
 uLLLulDDDDldRRRRurDD
+DFS
+Steps: 0, Weight: 0, Nodes: 1101, Time (ms): 0.18615s, Memory (MB): 21.01953
+No solution
+BFS
+Steps: 20, Weight: 1300, Nodes: 2034, Time (ms): 5.00, Memory (MB): 20.34
+uLLLulDDDDldRRRRurDD

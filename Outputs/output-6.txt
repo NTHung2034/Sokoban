@@ -1,9 +1,12 @@
-UCS
-Steps: 105, Weight: 402, Nodes: 87467, Time (ms): 721.63, Memory (MB): 9.57
+BFS
+Steps: 105, Weight: 402, Nodes: 52172, Time (ms): 160.93, Memory (MB): 104.41
 rddLruulDlDDDrdLLdlluRuRlddrUrUUUluRRRdLulDDDrdLLdlluRuRlddrUrUUUluRddddlluRdrUUUrruulDrdLuLDDDrdLLulDrdL
 DFS
-Steps: 0, Weight: 0, Nodes: 1093, Time (ms): 0.18981s, Memory (MB): 21.55469
-No solution
-BFS
-Steps: 105, Weight: 402, Nodes: 52172, Time (ms): 163.17, Memory (MB): 26.93
+Steps: 365, Weight: 1068, Nodes: 3132, Time (ms): 0.55792s, Memory (MB): 211.49219
+rrdldLrurullDlDlurrrdLrurulldlldRDDrdLruluulurrrdLrurulldlldRddrdlLrruluulurrrdLrurulldlldRddrdlldlluRuRldldrrUrUrdllluRldrrruLUdrdllluRldrrruLuUluRRRllldrddrdllluRldrrruLuulurrrdLrullDDDrdLLdlluRuRldldrrUrUrdllluRldrrruLUdrdllluRldrrruLuUluRldrrruulDrdLrullDDDrdLLdlluRuRldldrrUrUrdllluRldrrruLUdrdllluRldrrruLuUluRldrddrdllluRldrrUUUrruulDrdLrulLDDDrdLLrrulllDrdL
+UCS
+Steps: 105, Weight: 402, Nodes: 87467, Time (ms): 703.85, Memory (MB): -12.68
 rddLruulDlDDDrdLLdlluRuRlddrUrUUUluRRRdLulDDDrdLLdlluRuRlddrUrUUUluRddddlluRdrUUUrruulDrdLuLDDDrdLLulDrdL
+A*
+Steps: 107, Weight: 402, Nodes: 4582, Time (ms): 60.25, Memory (MB): 414.23
+rddLruulDlDDDrdLLdlluRuRlddrUrUUUluRRRdLulDDDrdLLdlluRuRlddrUrUUUluRddddlluRdrUUUrruulDLrrdLulDDDrdLLulDrdL

@@ -3,7 +3,7 @@ import time
 import Modules.File as File
 import copy
 import Modules.MazeHelper as MazeHelper
-timeOut = 10
+
 class MazeState:
     def __init__(self, mazeMatrix : dict, rockWeights : list) -> None:
         self.rockData = MazeHelper.getRockData(mazeMatrix, rockWeights)
@@ -148,7 +148,7 @@ class Maze:
                 return False
         return True
 
-MAX_DEPTH = 1e3 # Avoid traversing too long
+MAX_DEPTH = 1e6 # Avoid traversing too long
 
 def dfs(filepath : str) -> None:
     global availablePosition
@@ -164,11 +164,10 @@ def dfs(filepath : str) -> None:
     startTime = time.time()
 
     maze = Maze(MazeState(mazeMatrix, rockWeights))
-    print(maze.mazeState.switchData)
+    # print(maze.mazeState.switchData)
     stack = []
     traveled = set()
     path = []
-
 
     stack.append((maze, path, 0))
     while stack:
@@ -186,8 +185,8 @@ def dfs(filepath : str) -> None:
             endTime = time.time()
             searchTime = endTime - startTime
             memoryUsed = process.memory_info().rss / (1024 ** 2)
-            print(path, cost)
-            MazeHelper.printMaze(currentMaze)
+            # print(path, cost)
+            # MazeHelper.printMaze(currentMaze)
             pathStr = ''.join(path)
             File.exportSolutionToFile(fileInfo['caseIndex'], 'DFS', len(pathStr), pathStr, cost, nodesGenerated, searchTime, memoryUsed)
             return

@@ -72,8 +72,19 @@ class A_Star_Search:
         # push the initial node to the open list
         heapq.heappush(self.open_list, (initial_node.f, initial_node))
 
+        # maximum allowed search time in seconds (1 minute 30 seconds)
+        max_time = 60
+
         # begin the search loop
         while self.open_list:
+            # check if the elapsed time has exceeded the maximum time
+            current_time = time.time()
+            if current_time - start_time > max_time:
+                search_time = current_time - start_time
+                self.memory_used = process.memory_info().rss / (1024 * 1024)  # get the memory usage in MB
+                print("Time limit exceeded. No solution found.")
+                return None, search_time
+
             # pop the node with the smallest f value from the open list
             _, current_node = heapq.heappop(self.open_list)
             self.closed_list.add(current_node)
@@ -86,7 +97,7 @@ class A_Star_Search:
                 solution = self.reconstruct_path(current_node)
                 
                 # return the solution and the search time
-                return solution, search_time
+                return solution, search_time 
 
             # expand the current node
             neighbors = self.get_neighbors(current_node)
@@ -237,6 +248,7 @@ class A_Star_Search:
 
         return node.grid[pos[0]][pos[1]] in [' ', '.']
 
+
     def heuristic(self, node):
         """the function to calculate the heuristic value of a node"""
 
@@ -247,6 +259,7 @@ class A_Star_Search:
         return total_distance
 #=======================================================================================================
 #=========================================== END CLASS: A_Star_Search ==================================   
+
 
 #=======================================================================================================
 #=========================================== GLOBAL FUNCTION  ==========================================
@@ -263,8 +276,16 @@ def write_output_file(filename, algorithm_name, steps, total_weight, nodes_gener
 
     with open(filename, 'a') as file:
         file.write(f"{algorithm_name}\n")
-        file.write(f"Steps: {steps}, Weight: {total_weight}, Nodes: {nodes_generated}, Time: {search_time:.4f}s, Memory: {memory_used}MB\n")
+        file.write(f"Steps: {steps}, Weight: {total_weight}, Nodes: {nodes_generated}, Time (ms): {search_time:.2f}, Memory (MB): {memory_used:.2f}\n")
         file.write(f"{actions}\n")
+
+def print_result(actions, steps, search_time, goals):
+    """the function to print the result"""
+
+    print(f"Solution found in {steps} steps and {search_time:.2f} seconds.")
+    print("Actions:")
+    for i, step in enumerate(actions):
+        print(f"{i + 1}. {step}")
 
 def create_initial_state(grid):
     """the function to create the initial state"""
@@ -283,6 +304,7 @@ def create_initial_state(grid):
                 goals.append((row, col))
     
     return ares_position, stone_positions, goals
+
 
 def move_position(x, y, direction):
     """the function to move the position"""
@@ -308,18 +330,18 @@ def calculate_total_cost(final_path, ares_position, stone_weights, stones):
         # if the action is a move action
         if action in ['u', 'd', 'l', 'r']:  
             new_x, new_y = move_position(current_x, current_y, action)
-            total_cost += 1  
+        #     total_cost += 1  
             current_x, current_y = new_x, new_y  
         
         # if the action is a push action
-        elif action in ['U', 'D', 'L', 'R']:
+        if action in ['U', 'D', 'L', 'R']:
             # get the direction of the stone 
             stone_direction = action.lower()  
             stone_x, stone_y = move_position(current_x, current_y, stone_direction) 
             
             # get the weight of the stone
             stone_weight = stone_weights[stone_positions.index((stone_x, stone_y))]
-            total_cost += (1 + stone_weight)  
+            total_cost +=  stone_weight  
             
             # update the position of the stone
             new_stone_x, new_stone_y = move_position(stone_x, stone_y, stone_direction)
@@ -330,10 +352,12 @@ def calculate_total_cost(final_path, ares_position, stone_weights, stones):
 
     return total_cost
 
+
 def main():
     for i in range(1, 11):
-        input_filename = f'Test_cases\\input-{i}.txt'
-        output_filename = f'Outputs\\output-{i}.txt'
+        # print(i)
+        input_filename = f'Test_cases/input-{i}.txt'
+        output_filename = f'Outputs/output-{i}.txt'
         weights, grid = read_input_file(input_filename)
         
         ares_position, stone_positions, goals = create_initial_state(grid)
@@ -342,13 +366,22 @@ def main():
         search_algorithm = A_Star_Search(initial_node, goals, weights)
         solution_node, search_time = search_algorithm.search()  
         
-        if solution_node:
+        if solution_node is not None:
             final_node = solution_node[-1]  
             steps = final_node.g
             total_weight = calculate_total_cost(final_node.get_path(), ares_position, weights, stone_positions)
-            actions = final_node.get_path()
+            actions = final_node.get_path() 
+             
+        else:
+            actions = "No solution"
+            steps = 0
+            total_weight = 0
 
-            write_output_file(output_filename, "A*", steps, total_weight, search_algorithm.nodes_generated, search_time, search_algorithm.memory_used, actions)
+        search_time = search_time * 1000 
+        # print_result(actions, steps, search_time, goals) # print the result to the console
+
+        print(f"output_{i}.txt")
+        write_output_file(output_filename, "A*", steps, total_weight, search_algorithm.nodes_generated, search_time, search_algorithm.memory_used, actions)
 
 if __name__ == "__main__":
     main()

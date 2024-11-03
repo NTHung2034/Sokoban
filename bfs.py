@@ -44,6 +44,9 @@ class MazeSolver:
                     self.stones.append((i, j))
                 elif self.grid[i][j] == '.':
                     self.switches.add((i, j))
+                elif self.grid[i][j] == '*':
+                    self.switches.add((i, j))
+                    self.stones.append((i, j))
         
     def bfs(self):
         start_time = time.time()
@@ -55,7 +58,7 @@ class MazeSolver:
 
         while queue:
              # Check for timeout
-            time_out = 20 # 90 giây
+            time_out = 60 # 60 giây
             if time.time() - start_time > time_out:
                 state = state._replace(path="No solution\n")
                 return self.generate_output(state, nodes_generated, start_time)  # Terminate if timeout is exceeded
@@ -98,7 +101,7 @@ class MazeSolver:
                             if self.is_goal(new_state):
                                 return self.generate_output(new_state, nodes_generated, start_time)
                             
-        state = state._replace(path="No solution\n")
+        state = state._replace(path="No solution")
         return self.generate_output(state, nodes_generated, start_time)   # No solution found
 
     def is_goal(self, state):

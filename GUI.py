@@ -18,15 +18,13 @@ class SokobanGUI:
         self.solution_path = ""
         self.stats = {"steps": 0, "weight": 0, "nodes": 0, "time": 0, "memory": 0}
         self.output_dir = output_dir
-        self.tile_size = 32  # Size of tiles in pixels
+        self.tile_size = 64
         self.tile_images = {}
+        self.stone_weights = []  # Added to store stone weights
         
-        # Load tileset
         self.load_tileset()
-        
-        # Setup GUI components
         self.setup_gui()
-        
+
     def load_tileset(self):
         """Load and store tile images with proper resizing"""
         try:
@@ -42,14 +40,12 @@ class SokobanGUI:
             
             for char, filename in tileset_mapping.items():
                 image = Image.open(os.path.join("tileset", filename))
-                # Resize image to match tile_size
                 image = image.resize((self.tile_size, self.tile_size), Image.Resampling.LANCZOS)
                 self.tile_images[char] = ImageTk.PhotoImage(image)
         except Exception as e:
             messagebox.showerror("Error", f"Failed to load tileset: {str(e)}")
-            # Fallback to colored rectangles if tileset loading fails
             self.tile_images = {}
-    
+
     def setup_gui(self):
         # Top control panel
         control_frame = ttk.Frame(self.root, padding="10")
@@ -59,7 +55,7 @@ class SokobanGUI:
         ttk.Label(control_frame, text="Algorithm:").grid(row=0, column=0, padx=5)
         self.algo_var = tk.StringVar(value="UCS")
         algo_combo = ttk.Combobox(control_frame, textvariable=self.algo_var, 
-                                  values=["UCS", "BFS", "DFS"], state="readonly")
+                                  values=["UCS", "BFS", "DFS", "A*"], state="readonly")
         algo_combo.grid(row=0, column=1, padx=5)
         
         # Test case selection
@@ -96,14 +92,10 @@ class SokobanGUI:
         # Create scrollbars
         self.h_scrollbar = ttk.Scrollbar(canvas_frame, orient=tk.HORIZONTAL)
         self.v_scrollbar = ttk.Scrollbar(canvas_frame, orient=tk.VERTICAL)
-        self.canvas = tk.Canvas(canvas_frame, width=500, height=500, 
+        self.canvas = tk.Canvas(canvas_frame, width=800, height=600, 
                               xscrollcommand=self.h_scrollbar.set,
                               yscrollcommand=self.v_scrollbar.set,
                               bg='white')
-        
-        # Configure scrollbars
-        self.h_scrollbar.config(command=self.canvas.xview)
-        self.v_scrollbar.config(command=self.canvas.yview)
         
         # Grid layout with scrollbars
         self.canvas.grid(row=0, column=0, sticky=(tk.N, tk.S, tk.E, tk.W))
@@ -113,6 +105,13 @@ class SokobanGUI:
         # Make canvas expandable
         canvas_frame.grid_rowconfigure(0, weight=1)
         canvas_frame.grid_columnconfigure(0, weight=1)
+        
+        # Configure main window to be expandable
+        self.root.grid_rowconfigure(2, weight=1)
+        self.root.grid_columnconfigure(0, weight=1)
+        
+        # Set minimum window size
+        self.root.minsize(900, 700) 
         
         # Stats frame
         stats_frame = ttk.LabelFrame(self.root, text="Statistics", padding="10")
@@ -125,15 +124,19 @@ class SokobanGUI:
             ttk.Label(stats_frame, text=f"{stat}:").grid(row=0, column=i*2, padx=5)
             self.stats_labels[stat] = ttk.Label(stats_frame, text="0")
             self.stats_labels[stat].grid(row=0, column=i*2+1, padx=5)
-    
+ 
     def solve_maze(self):
         algo = self.algo_var.get()
         test_case = self.test_var.get()
         
-        # Load initial maze state
+        # Load initial maze state and stone weights
         maze_file = f"Test_cases/input-{test_case}.txt"
         try:
             with open(maze_file, 'r') as f:
+                # First line contains stone weights
+                weights = f.readline().strip().split()
+                self.stone_weights = [int(w) for w in weights]
+                # Rest of the lines contain the maze
                 self.initial_maze = [list(line.strip()) for line in f.readlines()]
             self.current_maze = copy.deepcopy(self.initial_maze)
         except FileNotFoundError:
@@ -146,50 +149,80 @@ class SokobanGUI:
             return
         
         # Read output file
-        with open(output_file, 'r') as f:
-            lines = f.readlines()
-
-        # Find the relevant algorithm section
-        algo_index = -1
-        for i, line in enumerate(lines):
-            if line.strip() == algo:
-                algo_index = i
-                break
-                
-        if algo_index == -1:
-            messagebox.showerror("Error", f"Algorithm {algo} not found in output file!")
-            return
-
-        # Parse solution details
-        stats_line = lines[algo_index + 1].strip()
-        if "No solution" in stats_line:
-            self.solution_path = ""
-            self.stats = {"steps": 0, "weight": 0, "nodes": 0, "time": 0, "memory": 0}
-            messagebox.showinfo("Result", "No solution found for the selected algorithm.")
-            self.update_stats(no_solution=True)
-            return
-
-        # Parse the solution path - ensure we get the complete path
-        self.solution_path = lines[algo_index + 2].strip()
-        
-        # Parse statistics
         try:
-            parts = stats_line.split(", ")
-            self.stats["steps"] = int(parts[0].split(": ")[1])
-            self.stats["weight"] = int(parts[1].split(": ")[1])
-            self.stats["nodes"] = int(parts[2].split(": ")[1])
-            self.stats["time"] = float(parts[3].split(": ")[1])
-            self.stats["memory"] = float(parts[4].split(": ")[1])
+            with open(output_file, 'r') as f:
+                lines = f.readlines()
+
+            # Find the selected algorithm section
+            algo_start = -1
+            for i, line in enumerate(lines):
+                if line.strip() == algo:
+                    algo_start = i
+                    break
+            
+            if algo_start == -1:
+                messagebox.showerror("Error", f"Algorithm {algo} not found in output file!")
+                return
+
+            # Parse solution details
+            stats_line = lines[algo_start + 1].strip()
+            way = lines[algo_start + 2].strip()
+
+            # Check if the second line contains "No solution"
+            if "No solution" in way:
+                # Parse the limited statistics available for no solution case
+                try:
+                    parts = stats_line.split(", ")
+                    self.stats = {
+                        "steps": 0,
+                        "weight": 0,
+                        "nodes": int(parts[2].split(": ")[1]),
+                        "time": float(parts[3].split(": ")[1].replace('s', '')) * 1000 if 's' in parts[3] else float(parts[3].split(": ")[1]),
+                        "memory": float(parts[4].split(": ")[1])
+                    }
+                except Exception as e:
+                    print(f"Error parsing no solution statistics: {e}")
+                    self.stats = {"steps": 0, "weight": 0, "nodes": 0, "time": 0, "memory": 0}
+                
+                self.solution_path = ""
+                messagebox.showinfo("Result", f"No solution found for {algo}")
+                self.update_stats(no_solution=True)
+                return
+
+            # Regular solution case - parse all statistics and solution path
+            try:
+                # Parse statistics
+                parts = stats_line.split(", ")
+                self.stats["steps"] = int(parts[0].split(": ")[1])
+                self.stats["weight"] = int(parts[1].split(": ")[1])
+                self.stats["nodes"] = int(parts[2].split(": ")[1])
+                
+                # Handle time format (both 'seconds' and 'milliseconds')
+                time_part = parts[3].split(": ")[1]
+                if 's' in time_part:  # Format is in seconds
+                    self.stats["time"] = float(time_part.replace('s', '')) * 1000  # Convert to ms
+                else:  # Format is in milliseconds
+                    self.stats["time"] = float(time_part)
+                
+                self.stats["memory"] = float(parts[4].split(": ")[1])
+                
+                # Get solution path
+                self.solution_path = lines[algo_start + 2].strip()
+                
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed to parse statistics: {str(e)}")
+                return
+
+            # Reset maze and update display
+            self.current_step = 0
+            self.reset_maze()
+            self.update_display()
+            self.update_stats()
+            
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to parse statistics: {str(e)}")
+            messagebox.showerror("Error", f"Failed to parse output file: {str(e)}")
             return
 
-        # Reset maze and update display
-        self.current_step = 0
-        self.reset_maze()
-        self.update_display()
-        self.update_stats()
-    
     def update_display(self):
         if not self.current_maze:
             return
@@ -229,16 +262,19 @@ class SokobanGUI:
 
     def update_stats(self, no_solution=False):
         if no_solution:
-            for label in self.stats_labels.values():
-                label.config(text="N/A")
             self.stats_labels["Steps"].config(text="No solution")
+            self.stats_labels["Weight"].config(text="0")
+            # Still show the available statistics
+            self.stats_labels["Nodes"].config(text=f"{self.stats['nodes']}")
+            self.stats_labels["Time (ms)"].config(text=f"{self.stats['time']:.2f}")
+            self.stats_labels["Memory (MB)"].config(text=f"{self.stats['memory']:.2f}")
         else:
             self.stats_labels["Steps"].config(text=f"{self.current_step}/{self.stats['steps']}")
             self.stats_labels["Weight"].config(text=f"{self.stats['weight']}")
             self.stats_labels["Nodes"].config(text=f"{self.stats['nodes']}")
             self.stats_labels["Time (ms)"].config(text=f"{self.stats['time']:.2f}")
-            self.stats_labels["Memory (MB)"].config(text=f"{self.stats['memory']:.2f}")
-    
+            self.stats_labels["Memory (MB)"].config(text=f"{self.stats['memory']:.2f}")    
+
     def find_player_pos(self, maze):
         for i, row in enumerate(maze):
             for j, cell in enumerate(row):
@@ -246,25 +282,141 @@ class SokobanGUI:
                     return i, j
         return None
     
-    def step_forward(self):
-        if not self.solution_path or self.current_step >= len(self.solution_path):
-            return
-            
-        move = self.solution_path[self.current_step]
-        self.apply_move(move)
-        self.current_step += 1
+    def reset_animation(self):
+        self.is_playing = False
+        self.play_button.config(text="▶")
+        self.current_step = 0
+        self.reset_maze()
         self.update_display()
         self.update_stats()
+
+    def toggle_play(self):
+        self.is_playing = not self.is_playing
+        self.play_button.config(text="⏸" if self.is_playing else "▶")
+        if self.is_playing:
+            self.play_animation()
+
+    def update_speed(self, value):
+        self.animation_speed = int(float(value))
     
-    def step_backward(self):
-        if self.current_step > 0:
-            self.current_step -= 1
-            self.reset_maze()
-            for i in range(self.current_step):
-                move = self.solution_path[i]
-                self.apply_move(move)
+    def reset_maze(self):
+        self.current_maze = copy.deepcopy(self.initial_maze)
+
+    def apply_move(self, move):
+        """Improved move application with better box pushing logic"""
+        player_pos = self.find_player_pos(self.current_maze)
+        if not player_pos:
+            return False
+        
+        row, col = player_pos
+        dr, dc = 0, 0
+        
+        # Determine direction of movement
+        if move.lower() == 'u': dr = -1
+        elif move.lower() == 'd': dr = 1
+        elif move.lower() == 'l': dc = -1
+        elif move.lower() == 'r': dc = 1
+        else:
+            return False  # Invalid move
+        
+        new_row, new_col = row + dr, col + dc
+        
+        # Check bounds
+        if (new_row < 0 or new_row >= len(self.current_maze) or
+            new_col < 0 or new_col >= len(self.current_maze[0])):
+            return False
+        
+        # Get current cell states
+        current_cell = self.current_maze[row][col]
+        target_cell = self.current_maze[new_row][new_col]
+        
+        # Player is on switch?
+        player_on_switch = current_cell == '+'
+        
+        # Handle wall collision
+        if target_cell == '#':
+            return False
+            
+        # Handle box pushing (uppercase moves)
+        if move.isupper() and target_cell in ['$', '*']:
+            box_row, box_col = new_row + dr, new_col + dc
+            
+            # Check box push validity
+            if (0 <= box_row < len(self.current_maze) and 
+                0 <= box_col < len(self.current_maze[0])):
+                
+                box_target = self.current_maze[box_row][box_col]
+                
+                # Can only push into empty space or switch
+                if box_target in [' ', '.']:
+                    # Update box position
+                    self.current_maze[box_row][box_col] = '*' if box_target == '.' else '$'
+                    # Update player position
+                    self.current_maze[new_row][new_col] = '+' if target_cell == '*' else '@'
+                    # Update previous player position
+                    self.current_maze[row][col] = '.' if player_on_switch else ' '
+                    return True
+            return False
+            
+        # Handle regular movement (lowercase moves)
+        elif move.islower():
+            # Can't walk through boxes with lowercase moves
+            if target_cell in ['$', '*']:
+                return False
+                
+            # Move to empty space or switch
+            if target_cell in [' ', '.']:
+                self.current_maze[new_row][new_col] = '+' if target_cell == '.' else '@'
+                self.current_maze[row][col] = '.' if player_on_switch else ' '
+                return True
+                
+        return False
+
+    def step_forward(self):
+        """Improved step forward with better validation and error handling"""
+        if not self.solution_path or self.current_step >= len(self.solution_path):
+            self.is_playing = False
+            self.play_button.config(text="▶")
+            return False
+            
+        move = self.solution_path[self.current_step]
+        if self.apply_move(move):
+            self.current_step += 1
             self.update_display()
             self.update_stats()
+            return True
+        else:
+            print(f"Failed to apply move: {move} at step {self.current_step}")
+            self.is_playing = False
+            self.play_button.config(text="▶")
+            return False
+
+    def play_animation(self):
+        """Improved animation with better error handling"""
+        if self.is_playing:
+            if self.step_forward():
+                self.root.after(self.animation_speed, self.play_animation)
+            else:
+                self.is_playing = False
+                self.play_button.config(text="▶")
+   
+    def step_backward(self):
+        """Improved step backward with validation"""
+        if self.current_step <= 0:
+            return
+            
+        self.current_step -= 1
+        self.reset_maze()
+        
+        # Replay all moves up to current step
+        for i in range(self.current_step):
+            move = self.solution_path[i]
+            if not self.apply_move(move):
+                print(f"Failed to replay move: {move} at step {i}")
+                break
+                
+        self.update_display()
+        self.update_stats()
 
     def reset_animation(self):
         self.is_playing = False
@@ -280,69 +432,6 @@ class SokobanGUI:
         if self.is_playing:
             self.play_animation()
 
-    def play_animation(self):
-        if self.is_playing and self.current_step < len(self.solution_path):
-            self.step_forward()
-            self.root.after(self.animation_speed, self.play_animation)
-        else:
-            self.is_playing = False
-            self.play_button.config(text="▶")
-    
-    def update_speed(self, value):
-        self.animation_speed = int(float(value))
-    
-    def reset_maze(self):
-        self.current_maze = copy.deepcopy(self.initial_maze)
-
-    def apply_move(self, move):
-        player_pos = self.find_player_pos(self.current_maze)
-        if not player_pos:
-            return
-        
-        row, col = player_pos
-        dr, dc = 0, 0
-        
-        # Determine direction of movement
-        if move.lower() == 'u': dr = -1
-        elif move.lower() == 'd': dr = 1
-        elif move.lower() == 'l': dc = -1
-        elif move.lower() == 'r': dc = 1
-        
-        new_row, new_col = row + dr, col + dc
-        
-        # Check if move is within bounds
-        if (new_row < 0 or new_row >= len(self.current_maze) or
-            new_col < 0 or new_col >= len(self.current_maze[0])):
-            return
-        
-        # Get current cell type and target cell type
-        current = self.current_maze[row][col]
-        target = self.current_maze[new_row][new_col]
-        
-        # Handle pushing box (uppercase moves)
-        if move.isupper():
-            if target in ['$', '*']:
-                box_row, box_col = new_row + dr
-                box_row, box_col = new_row + dr, new_col + dc
-                
-                # Check if the box can be pushed
-                if (box_row < 0 or box_row >= len(self.current_maze) or
-                    box_col < 0 or box_col >= len(self.current_maze[0])):
-                    return  # Box cannot be pushed out of bounds
-
-                # Check the target cell of the box
-                target_box = self.current_maze[box_row][box_col]
-                if target_box in [' ', '.']:  # Space or switch
-                    # Move the box
-                    self.current_maze[box_row][box_col] = '$' if target_box == ' ' else '*'
-                    self.current_maze[new_row][new_col] = '@'  # Move player to box's position
-                    self.current_maze[row][col] = ' ' if current == '@' else '.'  # Update previous position
-                    return
-
-        # Move player only (lowercase moves)
-        if target in [' ', '.']:  # Free space or switch
-            self.current_maze[new_row][new_col] = '@'  # Move player to target
-            self.current_maze[row][col] = ' ' if current == '@' else '.'  # Update previous position
 
 def main():
     root = tk.Tk()

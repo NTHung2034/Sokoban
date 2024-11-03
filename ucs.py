@@ -6,7 +6,7 @@ import Modules.File as File
 import psutil
 import os
 from dataclasses import dataclass
-time_out = 20
+time_out = 60
 
 @dataclass(frozen=True)
 class Position:
@@ -161,10 +161,18 @@ class MazeSolver:
         return neighbors
 
     def solve_ucs(self) -> Tuple[List[str], Dict]:
-        # time measurement
+        # Get initial memory snapshot and clear memory
+        process = psutil.Process(os.getpid())
+        if hasattr(process, 'memory_full_info'):  # Linux systems
+            start_memory = process.memory_full_info().uss / 1024 / 1024  # Convert to MB
+        else:  # Windows and others
+            start_memory = process.memory_info().rss / 1024 / 1024  # Convert to MB
+            
+        # Force garbage collection before starting
+        import gc
+        gc.collect()
+        
         start_time = time.time()
-        start_memory = psutil.Process(os.getpid()).memory_info().rss / 1024 / 1024
-
         initial_state = self.get_initial_state()
         pq = [(0, [], initial_state)]
         visited = set()
@@ -172,17 +180,22 @@ class MazeSolver:
         while pq:
             cost, path, current_state = heapq.heappop(pq)
 
-            if time.time() - start_time > time_out: # Terminate if timeout is exceeded
+            if time.time() - start_time > time_out:
                 print("Timeout reached. Exiting UCS.")
-                end_time = time.time()
-                end_memory = psutil.Process(os.getpid()).memory_info().rss / 1024 / 1024
-
+                # Get final memory usage
+                if hasattr(process, 'memory_full_info'):
+                    end_memory = process.memory_full_info().uss / 1024 / 1024
+                else:
+                    end_memory = process.memory_info().rss / 1024 / 1024
+                    
+                memory_used = max(0, end_memory - start_memory)  # Ensure non-negative
+                
                 stats = {
                     'steps': len(path),
                     'weight': cost - len(path),
                     'nodes': self.nodes_generated,
-                    'time': (end_time - start_time) * 1000,
-                    'memory': end_memory - start_memory
+                    'time': (time.time() - start_time) * 1000,
+                    'memory': memory_used
                 }
                 return None, stats  
             
@@ -196,17 +209,21 @@ class MazeSolver:
             # print(self.print_state(current_state))
             
             if self.is_goal_state(current_state):
-                end_time = time.time()
-                end_memory = psutil.Process(os.getpid()).memory_info().rss / 1024 / 1024
+                        # Get final memory usage
+                if hasattr(process, 'memory_full_info'):
+                    end_memory = process.memory_full_info().uss / 1024 / 1024
+                else:
+                    end_memory = process.memory_info().rss / 1024 / 1024
+                    
+                memory_used = max(0, end_memory - start_memory)  # Ensure non-negative
                 
                 total_push_weight = cost - len(path)
-                
                 stats = {
                     'steps': len(path),
                     'weight': total_push_weight,
                     'nodes': self.nodes_generated,
-                    'time': (end_time - start_time) * 1000,
-                    'memory': end_memory - start_memory
+                    'time': (time.time() - start_time) * 1000,
+                    'memory': memory_used
                 }
                 return path, stats
             
@@ -219,17 +236,22 @@ class MazeSolver:
                         next_state
                     ))
                     
-        end_time = time.time()
-        end_memory = psutil.Process(os.getpid()).memory_info().rss / 1024 / 1024
+        if hasattr(process, 'memory_full_info'):
+            end_memory = process.memory_full_info().uss / 1024 / 1024
+        else:
+            end_memory = process.memory_info().rss / 1024 / 1024
+            
+        memory_used = max(0, end_memory - start_memory)  # Ensure non-negative
+        
         stats = {
-            'steps': len(path),
-            'weight': cost - len(path),
+            'steps': 0,
+            'weight': 0,
             'nodes': self.nodes_generated,
-            'time': (end_time - start_time) * 1000,
-            'memory': end_memory - start_memory
+            'time': (time.time() - start_time) * 1000,
+            'memory': memory_used
         }
         return None, stats
-
+    
 def read_input(filepath: str) -> Tuple[List[int], List[str]]:
     with open(filepath, 'r') as f:
         stone_weights = list(map(int, f.readline().strip().split()))

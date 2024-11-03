@@ -1,12 +1,12 @@
 BFS
-Steps: 52, Weight: 449, Nodes: 515126, Time (ms): 1890.15, Memory (MB): 119.11
+Steps: 52, Weight: 449, Nodes: 515126, Time (ms): 1944.63, Memory (MB): 119.45
 LullDLulldDDDuuuurrdLulDDDuurrdRuurrdLLLLulDDlddddrR
 DFS
-Steps: 0, Weight: 0, Nodes: 1000173, Time (ms): 201.13644s, Memory (MB): 3167.66406
+Steps: 0, Weight: 0, Nodes: 1000173, Time (ms): 206.12734s, Memory (MB): 3164.69922
 No solution
 UCS
-Steps: 52, Weight: 449, Nodes: 1208798, Time (ms): 15597.91, Memory (MB): 134.75
+Steps: 52, Weight: 449, Nodes: 1208798, Time (ms): 15776.27, Memory (MB): 308.26
 LullDLulldDDDuuuurrdLulDDDuurrdRuurrdLLLLulDDlddddrR
 A*
-Steps: 67, Weight: 449, Nodes: 313386, Time (ms): 9495.24, Memory (MB): 415.26
+Steps: 67, Weight: 449, Nodes: 313386, Time (ms): 9663.13, Memory (MB): 416.41
 LullDLdRuullldDDlddrdRluluuruuurrdLulDlddrDuluurDDuurrrurrdLLLLulDD

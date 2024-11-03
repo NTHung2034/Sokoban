@@ -1,4 +1,3 @@
-# Tấn Hưng
 import heapq
 from typing import List, Tuple, Set, Dict
 import time
@@ -6,12 +5,14 @@ import Modules.File as File
 import psutil
 import os
 from dataclasses import dataclass
+
+# Maximum time (in seconds) allowed for solving a maze before timing out
 time_out = 60
 
 @dataclass(frozen=True)
 class Position:
-    x: int
-    y: int
+    x: int  
+    y: int 
     
     def __add__(self, other):
         return Position(self.x + other.x, self.y + other.y)
@@ -19,8 +20,8 @@ class Position:
 class State:
     def __init__(self, player: Position, stone_weights: Dict[Position, int], cost: int = 0):
         self.player = player
-        self.stone_weights = stone_weights
-        self.cost = cost
+        self.stone_weights = stone_weights  # Dictionary mapping stone positions to their weights
+        self.cost = cost  # Total cost to reach this state (moves + weight of pushed stones)
         
     def __lt__(self, other):
         return self.cost < other.cost
@@ -33,16 +34,16 @@ class State:
 
 class MazeSolver:
     def __init__(self, maze: List[str], stone_weights: List[int]):
-        # Clean up the maze input
+        # Clean up the maze input and ensure all rows have same width
         self.maze = [row.rstrip() for row in maze] 
         self.width = max(len(row) for row in self.maze)
         self.maze = [row.ljust(self.width) for row in self.maze]
         self.height = len(self.maze)
         
-        self.switches = set()
-        self.walls = set()
-        self.nodes_generated = 0
-        self.start_pos = None
+        self.switches = set()  # switches positions
+        self.walls = set()  # wall positions
+        self.nodes_generated = 0  
+        self.start_pos = None  # start position of Ares
         
         # Initialize stone positions and weights
         stone_positions = {}
@@ -56,7 +57,7 @@ class MazeSolver:
                 
                 if cell == '#':
                     self.walls.add(pos)
-                elif cell in ['.', '*', '+']:
+                elif cell in ['.', '*', '+']:  # All switch positions
                     self.switches.add(pos)
                     
         # Second pass: find stones and player
@@ -72,57 +73,41 @@ class MazeSolver:
                 elif cell in ['@', '+']:  # Player or player on switch
                     self.start_pos = pos
                     
+        # Validate maze setup
         if self.start_pos is None:
-            raise ValueError("No starting position '@' found in maze") # can't find Ares in the maze
+            raise ValueError("No starting position '@' found in maze")
             
-        if stone_idx != len(stone_weights): # check if we have enough stones 
+        if stone_idx != len(stone_weights):
             raise ValueError(f"Mismatch between number of stones in maze ({stone_idx}) and weights provided ({len(stone_weights)})")
             
         self.initial_stone_weights = stone_positions
 
-        # Verify we have same number of switches as stones
         if len(self.switches) != len(stone_positions):
             raise ValueError(f"Mismatch between number of switches ({len(self.switches)}) and stones ({len(stone_positions)})")
 
-    def print_state(self, state: State):
-        """Debug function to visualize current state"""
-        grid = [[' ' for _ in range(self.width)] for _ in range(self.height)]
-        
-        # Add walls
-        for wall in self.walls:
-            grid[wall.x][wall.y] = '#'
-            
-        # Add switches
-        for switch in self.switches:
-            grid[switch.x][switch.y] = '.'
-            
-        # Add stones
-        for stone_pos in state.stone_weights.keys():
-            if stone_pos in self.switches:
-                grid[stone_pos.x][stone_pos.y] = '*'
-            else:
-                grid[stone_pos.x][stone_pos.y] = '$'
-                
-        # Add player
-        if state.player in self.switches:
-            grid[state.player.x][state.player.y] = '+'
-        else:
-            grid[state.player.x][state.player.y] = '@'
-            
-        return '\n'.join(''.join(row) for row in grid)
-
     def is_valid_pos(self, pos: Position) -> bool:
+        """Check if a position is within maze bounds and not a wall"""
         return (0 <= pos.x < self.height and 0 <= pos.y < self.width and pos not in self.walls)
 
     def get_initial_state(self) -> State:
+        """Create the initial state of the maze"""
         return State(self.start_pos, self.initial_stone_weights)
 
     def is_goal_state(self, state: State) -> bool:
-        # Check if all stones are on switches (more precise check)
+        """
+        Check if current state is a goal state
+        Goal: All stones are on switches (and number of stones equals number of switches)
+        """
         stone_positions = set(state.stone_weights.keys())
         return stone_positions.issubset(self.switches) and len(stone_positions) == len(self.switches)
 
     def get_neighbors(self, state: State) -> List[Tuple[State, str]]:
+        """
+        Generate all possible next states from current state
+        Returns list of (new_state, move) pairs where move is the action taken:
+        - lowercase (u,d,l,r) for simple moves
+        - uppercase (U,D,L,R) for pushing stones
+        """
         neighbors = []
         moves = [
             (Position(-1, 0), 'u', 'U'),  # up
@@ -134,24 +119,24 @@ class MazeSolver:
         for delta, move_char, push_char in moves:
             new_pos = state.player + delta 
             
-            # Skip if new position is invalid
             if not self.is_valid_pos(new_pos):
                 continue
                 
             stones = set(state.stone_weights.keys())
             
-            # Simple move (no stone)
+            # Case 1: Moving to empty space
             if new_pos not in stones:
                 neighbors.append((State(new_pos, state.stone_weights, state.cost + 1), move_char))
-
-            # Push move (stone present)
+            # Case 2: Pushing a stone
             else:
-                push_pos = new_pos + delta # new pos of Ares = last pos of stone, push_pos = new pos of stone
+                push_pos = new_pos + delta  # Position where stone will end up
                 if (self.is_valid_pos(push_pos) and push_pos not in stones):
+                    # Create new stone positions dictionary with pushed stone
                     new_stone_weights = dict(state.stone_weights)
                     stone_weight = new_stone_weights.pop(new_pos)
                     new_stone_weights[push_pos] = stone_weight
                     
+                    # Cost increases by 1 (for move) plus weight of pushed stone
                     push_cost = state.cost + 1 + stone_weight
                     neighbors.append((
                         State(new_pos, new_stone_weights, push_cost),
@@ -161,62 +146,45 @@ class MazeSolver:
         return neighbors
 
     def solve_ucs(self) -> Tuple[List[str], Dict]:
-        # Get initial memory snapshot and clear memory
-        process = psutil.Process(os.getpid())
-        if hasattr(process, 'memory_full_info'):  # Linux systems
-            start_memory = process.memory_full_info().uss / 1024 / 1024  # Convert to MB
-        else:  # Windows and others
-            start_memory = process.memory_info().rss / 1024 / 1024  # Convert to MB
-            
-        # Force garbage collection before starting
-        import gc
-        gc.collect()
-        
+        """
+        Solve maze using Uniform Cost Search (UCS) algorithm
+        Returns:
+        - Solution path as list of moves
+        - Statistics dictionary with steps, weight, nodes explored, time, and memory usage
+        """
+        # Initialize process for memory monitoring
+        process = psutil.Process()
         start_time = time.time()
+        
         initial_state = self.get_initial_state()
-        pq = [(0, [], initial_state)]
-        visited = set()
+        pq = [(0, [], initial_state)]  # Priority queue: (cost, path, state)
+        visited = set()  # Keep track of visited states to avoid cycles
         
         while pq:
             cost, path, current_state = heapq.heappop(pq)
 
+            # Check for timeout
             if time.time() - start_time > time_out:
                 print("Timeout reached. Exiting UCS.")
-                # Get final memory usage
-                if hasattr(process, 'memory_full_info'):
-                    end_memory = process.memory_full_info().uss / 1024 / 1024
-                else:
-                    end_memory = process.memory_info().rss / 1024 / 1024
-                    
-                memory_used = max(0, end_memory - start_memory)  # Ensure non-negative
-                
+                memory_used = process.memory_info().rss / (1024 ** 2)  # Convert to MB
                 stats = {
                     'steps': len(path),
-                    'weight': cost - len(path),
+                    'weight': cost - len(path),  # Total weight = cost - number of moves
                     'nodes': self.nodes_generated,
-                    'time': (time.time() - start_time) * 1000,
+                    'time': (time.time() - start_time) * 1000,  # Convert to milliseconds
                     'memory': memory_used
                 }
                 return None, stats  
             
+            # Skip if state already visited
             if current_state in visited:
                 continue
                 
             visited.add(current_state)
             
-            # Debug print
-            # print(f"\nCurrent_state state (cost={cost}):")
-            # print(self.print_state(current_state))
-            
+            # Check if goal reached
             if self.is_goal_state(current_state):
-                        # Get final memory usage
-                if hasattr(process, 'memory_full_info'):
-                    end_memory = process.memory_full_info().uss / 1024 / 1024
-                else:
-                    end_memory = process.memory_info().rss / 1024 / 1024
-                    
-                memory_used = max(0, end_memory - start_memory)  # Ensure non-negative
-                
+                memory_used = process.memory_info().rss / (1024 ** 2)
                 total_push_weight = cost - len(path)
                 stats = {
                     'steps': len(path),
@@ -227,6 +195,7 @@ class MazeSolver:
                 }
                 return path, stats
             
+            # Explore neighbors
             for next_state, move in self.get_neighbors(current_state):
                 if next_state not in visited:
                     self.nodes_generated += 1
@@ -235,48 +204,43 @@ class MazeSolver:
                         path + [move],
                         next_state
                     ))
-                    
-        if hasattr(process, 'memory_full_info'):
-            end_memory = process.memory_full_info().uss / 1024 / 1024
-        else:
-            end_memory = process.memory_info().rss / 1024 / 1024
-            
-        memory_used = max(0, end_memory - start_memory)  # Ensure non-negative
         
+        # No solution found
+        memory_used = process.memory_info().rss / (1024 ** 2)
         stats = {
-            'steps': 0,
-            'weight': 0,
+            'steps': len(path),
+            'weight': cost - len(path),
             'nodes': self.nodes_generated,
             'time': (time.time() - start_time) * 1000,
             'memory': memory_used
         }
         return None, stats
-    
+
 def read_input(filepath: str) -> Tuple[List[int], List[str]]:
+    """Read stone weights and maze layout from input file"""
     with open(filepath, 'r') as f:
         stone_weights = list(map(int, f.readline().strip().split()))
         maze = [line.rstrip('\n') for line in f.readlines()]
     return stone_weights, maze
 
 def write_output(filepath: str, solution: List[str], stats: Dict):
+    """Write solution path and statistics to output file"""
     with open(filepath, 'a') as f:
         f.write('UCS\n')
         f.write(f"Steps: {stats['steps']}, Weight: {stats['weight']}, " +
                 f"Nodes: {stats['nodes']}, Time (ms): {stats['time']:.2f}, " +
                 f"Memory (MB): {stats['memory']:.2f}\n")
-        f.write(f"{''.join(solution)}\n")
+        f.write(f"{''.join(solution) if solution else 'No solution'}\n")
 
 def solve_maze(input_path: str, output_path: str):
+    """Main function to solve a single maze puzzle"""
     stone_weights, maze = read_input(input_path)
     solver = MazeSolver(maze, stone_weights)
     solution, stats = solver.solve_ucs()
-    
-    if solution:
-        write_output(output_path, solution, stats)
-    else:
-        write_output(output_path, 'No solution', stats)
+    write_output(output_path, solution, stats)
 
 def main():
+    """Process all test cases from input-1.txt to input-10.txt"""
     for i in range(1, 11):
         input_file = f'Test_cases\\input-{i}.txt'
         output_file = f'Outputs\\output-{i}.txt'

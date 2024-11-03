@@ -1,12 +1,12 @@
 BFS
-Steps: 33, Weight: 440, Nodes: 609, Time (ms): 2.00, Memory (MB): 99.00
+Steps: 33, Weight: 440, Nodes: 609, Time (ms): 2.00, Memory (MB): 99.35
 dlUrrrdLullddrUluRuulDrddrruLdlUU
 DFS
-Steps: 37, Weight: 469, Nodes: 238, Time (ms): 0.02900s, Memory (MB): 928.87891
+Steps: 37, Weight: 469, Nodes: 238, Time (ms): 0.02600s, Memory (MB): 887.98438
 dlUrrrdLrulllddrUluRuulDrddrruLrdllUU
 UCS
-Steps: 33, Weight: 440, Nodes: 826, Time (ms): 5.01, Memory (MB): 0.00
+Steps: 33, Weight: 440, Nodes: 826, Time (ms): 7.07, Memory (MB): 512.49
 dlUrrrdLullddrUluRuulDrddrruLdlUU
 A*
-Steps: 33, Weight: 440, Nodes: 214, Time (ms): 1.02, Memory (MB): 311.26
+Steps: 33, Weight: 440, Nodes: 214, Time (ms): 2.04, Memory (MB): 313.40
 dlUrrrdLullddrUluRuulDrddrruLdlUU

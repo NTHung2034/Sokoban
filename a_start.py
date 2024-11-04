@@ -1,7 +1,6 @@
 import time
 import heapq
 import psutil
-from abc import ABC, abstractmethod
 
 # class Node: define a node in the search tree
 #=======================================================================================================

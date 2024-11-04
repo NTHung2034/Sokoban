@@ -1,9 +1,7 @@
 import heapq
 from typing import List, Tuple, Set, Dict
 import time
-import Modules.File as File
 import psutil
-import os
 from dataclasses import dataclass
 
 # Maximum time (in seconds) allowed for solving a maze before timing out

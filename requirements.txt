@@ -2,3 +2,4 @@ psutil
 Pillow
 tk
 dataclasses
+ttkthemes

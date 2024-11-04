@@ -378,8 +378,7 @@ def main():
 
         search_time = search_time * 1000 
         # print_result(actions, steps, search_time, goals) # print the result to the console
-
-        print(f"output_{i}.txt")
+        
         write_output_file(output_filename, "A*", steps, total_weight, search_algorithm.nodes_generated, search_time, search_algorithm.memory_used, actions)
 
 if __name__ == "__main__":

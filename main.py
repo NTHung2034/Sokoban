@@ -1,7 +1,4 @@
-import bfs
-import dfs
-import ucs
-import a_start
+from Algorithms import bfs, dfs, ucs, a_start
 import os
 import glob
 

@@ -1,8 +1,9 @@
 import tkinter as tk
 from tkinter import ttk, messagebox
-from ttkthemes import ThemedTk  # Import ThemedTk from ttkthemes
+from ttkthemes import ThemedTk
 import os
 from PIL import Image, ImageTk
+from Algorithms import ucs, bfs, dfs, a_star
 import copy
 
 class SokobanGUI:
@@ -27,11 +28,34 @@ class SokobanGUI:
         self.total_weight_pushed = 0
         self.weight_history = []
         self.background_image = None
+        self.starting_image = None
+        self.missing_maze = []
 
-        self.load_tileset()
         self.setup_gui()
+        self.load_tileset()
         self.load_background()
     
+    def load_starting_image(self):
+        """Load and display the starting image"""
+        try:
+            # Load the starting picture
+            self.starting_image = Image.open("./Tileset/starting_screen.png")
+
+            # Check if the canvas has a valid size
+            canvas_width = self.canvas.winfo_width()
+            canvas_height = self.canvas.winfo_height()
+            if canvas_width > 0 and canvas_height > 0:
+                # Resize the starting picture to fit the canvas
+                self.starting_image = self.starting_image.resize((canvas_width, canvas_height), Image.Resampling.LANCZOS)
+                self.starting_image_tk = ImageTk.PhotoImage(self.starting_image)
+
+                # Set the starting picture as the background of the canvas
+                self.canvas.create_image(0, 0, image=self.starting_image_tk, anchor="nw", tags="background")
+                self.update_display()
+        except Exception as e:
+            messagebox.showwarning("Warning", f"Failed to load starting image: {str(e)}")
+            self.starting_image_tk = None
+
     def load_background(self):
         """Load background image for the canvas"""
         try:
@@ -65,6 +89,24 @@ class SokobanGUI:
             messagebox.showerror("Error", f"Failed to load tileset: {str(e)}")
             self.tile_images = {}
 
+    def remake_maze(self): 
+        begin_label = ttk.Label(self.root, text="Remaking missing mazes...")
+        begin_label.grid(row=6, column=0)
+
+        while self.missing_maze:
+            maze = self.missing_maze.pop()
+            bfs.remake_output(maze)
+            dfs.remake_output(maze)
+            ucs.remake_output(maze)
+            a_star.remake_output(maze)
+
+        begin_label.destroy()
+
+        end_label = ttk.Label(self.root, text="Remaking missing mazes... Done!")
+        end_label.grid(row=6, column=0)
+
+        self.root.after(3000, end_label.destroy) # Remove the done label after 3 seconds
+
     def setup_gui(self):
         # Top control panel
         control_frame = ttk.Frame(self.root, padding="10")
@@ -74,7 +116,7 @@ class SokobanGUI:
         ttk.Label(control_frame, text="Algorithm:").grid(row=0, column=0, padx=5)
         self.algo_var = tk.StringVar(value="UCS")
         algo_combo = ttk.Combobox(control_frame, textvariable=self.algo_var, 
-                                  values=["UCS", "BFS", "DFS", "A*"], state="readonly")
+                                  values=["BFS", "DFS", "UCS", "A*"], state="readonly")
         algo_combo.grid(row=0, column=1, padx=5)
 
 
@@ -87,6 +129,9 @@ class SokobanGUI:
 
         # Solve button
         ttk.Button(control_frame, text="Solve", command=self.solve_maze).grid(row=0, column=4, padx=5)
+
+        # Remake button
+        ttk.Button(control_frame, text="Remake", command=self.remake_maze).grid(row=0, column=5, padx=5)
 
         # Playback controls
         control_frame2 = ttk.Frame(self.root, padding="10")
@@ -123,12 +168,14 @@ class SokobanGUI:
         self.root.grid_columnconfigure(0, weight=1)
 
         # Create canvas with scrollbars
-        self.canvas = tk.Canvas(canvas_frame, bg='white')
+        self.canvas = tk.Canvas(canvas_frame, bg=self.starting_image)
         self.canvas.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
         
         # Configure canvas frame grid weights
         canvas_frame.grid_rowconfigure(0, weight=1)
         canvas_frame.grid_columnconfigure(0, weight=1)
+
+        self.load_starting_image()
 
         # Stats frame
         stats_frame = ttk.LabelFrame(self.root, text="Statistics", padding="10")
@@ -167,7 +214,8 @@ class SokobanGUI:
         output_file = os.path.join(self.output_dir, f"output-{test_case}.txt")
         if not os.path.exists(output_file):
             messagebox.showerror("Error", f"Output file {output_file} not found!")
-            return
+            self.missing_maze.append(test_case) # test case for remake
+            return 
         
         # Read output file
         try:
@@ -425,6 +473,7 @@ class SokobanGUI:
     
     def on_resize(self, event):
         self.load_background()
+        self.load_starting_image()
         self.update_display()   
 
     def update_stats(self, no_solution=False):

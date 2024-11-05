@@ -128,6 +128,12 @@ class MazeSolver:
         with open(self.output_file, 'a') as f:
             f.write("\n".join(output_content))
 
+def remake_output(test_case):
+    input_file = f'Test_cases\\input-{test_case}.txt'
+    output_file = f'Outputs\\output-{test_case}.txt'
+    solver = MazeSolver(input_file, output_file)
+    solver.bfs()
+
 def main():
      for i in range(1, 11):
         input_file = f'Test_cases\\input-{i}.txt'

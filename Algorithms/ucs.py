@@ -237,6 +237,11 @@ def solve_maze(input_path: str, output_path: str):
     solution, stats = solver.solve_ucs()
     write_output(output_path, solution, stats)
 
+def remake_output(test_case):
+    input_file = f'Test_cases\\input-{test_case}.txt'
+    output_file = f'Outputs\\output-{test_case}.txt'
+    solve_maze(input_file, output_file)
+
 def main():
     """Process all test cases from input-1.txt to input-10.txt"""
     for i in range(1, 11):

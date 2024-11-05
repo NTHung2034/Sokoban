@@ -199,6 +199,10 @@ def dfs(filepath : str) -> None:
                 stack.append((newMaze, path + [move], cost + moveCost))
                 nodesGenerated += 1
 
+def remake_output(test_case):
+    input_file = f'input-{test_case}.txt'
+    dfs(input_file)
+
 def maze_solve():
     for file in File.getAllTestFiles():
         dfs(file)

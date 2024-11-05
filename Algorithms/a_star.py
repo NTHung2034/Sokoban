@@ -351,6 +351,33 @@ def calculate_total_cost(final_path, ares_position, stone_weights, stones):
 
     return total_cost
 
+def remake_output(test_case):
+    input_filename = f'Test_cases/input-{test_case}.txt'
+    output_filename = f'Outputs/output-{test_case}.txt'
+
+    weights, grid = read_input_file(input_filename)
+    ares_position, stone_positions, goals = create_initial_state(grid)
+    initial_node = Node(ares_position=ares_position, boxes=stone_positions, grid=grid)
+    
+    search_algorithm = A_Star_Search(initial_node, goals, weights)
+    solution_node, search_time = search_algorithm.search()  
+    
+    if solution_node is not None:
+        final_node = solution_node[-1]  
+        steps = final_node.g
+        total_weight = calculate_total_cost(final_node.get_path(), ares_position, weights, stone_positions)
+        actions = final_node.get_path() 
+            
+    else:
+        actions = "No solution"
+        steps = 0
+        total_weight = 0
+
+    search_time = search_time * 1000 
+    # print_result(actions, steps, search_time, goals) # print the result to the console
+    
+    write_output_file(output_filename, "A*", steps, total_weight, search_algorithm.nodes_generated, search_time, search_algorithm.memory_used, actions)
+        
 
 def main():
     for i in range(1, 11):

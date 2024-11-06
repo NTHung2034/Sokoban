@@ -1,4 +1,4 @@
-from Algorithms import bfs, dfs, ucs, a_start
+from Algorithms import bfs, dfs, ucs, a_star
 import os
 import glob
 
@@ -35,7 +35,7 @@ def main():
     ucs.main()
     
     print("Running A* algorithm...")
-    a_start.main()
+    a_star.main()
     
     print("\nAll algorithms completed!")
 

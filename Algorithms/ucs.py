@@ -15,7 +15,8 @@ class Position:
     def __add__(self, other):
         return Position(self.x + other.x, self.y + other.y)
 
-class State:
+class State: 
+    """Represents a state of the maze with player position and stone weights"""
     def __init__(self, player: Position, stone_weights: Dict[Position, int], cost: int = 0):
         self.player = player
         self.stone_weights = stone_weights  # Dictionary mapping stone positions to their weights
